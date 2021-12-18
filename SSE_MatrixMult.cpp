@@ -2,10 +2,10 @@
 //
 
 #include <iostream>
-#include <xmmintrin.h>
+#include <immintrin.h>
 #include <chrono>
 
-#define N (1 << 6)
+#define N (1 << 10)
 
 void matrixMult(float* A, float* B, float* C)
 {
@@ -15,10 +15,12 @@ void matrixMult(float* A, float* B, float* C)
     {
         for (col = 0; col < N; col++)
         {
+            float tempC = 0;
             for (iter = 0; iter < N; iter++)
             {
-                C[row * N + col] += A[row * N + iter] * B[iter * N + col];
+                tempC += A[row * N + iter] * B[iter * N + col];
             }
+            C[row * N + col] = tempC;
         }
     }
 }
@@ -27,34 +29,45 @@ void matrixMultSSE(float* A, float* B, float* C)
 {
     __m128 regA;
     __m128 regB;
-    __m128 regC;
-    __m128 regTemp;
 
     int row, col, iter;
-    float temp[4];
+    float *temp = (float*)_aligned_malloc(sizeof(float), 16);
 
     for (row = 0; row < N; row++)
     {
         for (col = 0; col < N; col++)
         {
+            float tempC = 0;
             for (iter = 0; iter < N; iter+=4)
             {
                 regA = _mm_set_ps(A[row * N + iter], A[row * N + iter + 1], A[row * N + iter + 2], A[row * N + iter + 3]);
                 regB = _mm_set_ps(B[iter * N + col], B[(iter + 1) * N + col], B[(iter +2) * N + col], B[(iter + 3) * N + col]);
-                regTemp = _mm_mul_ps(regA, regB);
-                _mm_storeu_ps(temp, regTemp);
-                C[row * N + col] += temp[0] + temp[1] + temp[2] + temp[3];
+                regA = _mm_dp_ps(regA, regB, 0xff);
+                _mm_store_ps1(temp, regA);
+                tempC += *temp;
             }
+            C[row * N + col] = tempC;
         }
 
     }
+
+    _aligned_free(temp);
 }
 
+/// <summary>
+/// Initializes values into a float matrix of N by N size. 
+/// </summary>
+/// <param name="A">
+/// Pointer to the maxtrix to be initialized
+/// </param>
+/// <param name="randVal">If true, sets values to random values 0.00 to 99.99, else sets values
+/// to 0.
+/// </param>
 void matrixInit(float* A, bool randVal)
 {
     for (int i = 0; i < N * N; i++)
     {
-        float val = randVal ? (((float)(rand() % 10000)) / 100) : 0;
+        float val = randVal ? (((float)(rand() % 10000)) / 100) : 0;    /* Random float 0.00 to 99.99 if randVal is True, else 0. */
         A[i] = val;
     }
 }
@@ -90,6 +103,7 @@ int main()
 {
     std::cout << "Initializing Matrixes\r\n" << std::endl;
 
+    /* Algining data into 16-byte to improve register performance. */
     float* A = (float*) _aligned_malloc(N * N * sizeof(float), 16);
     float* B = (float*) _aligned_malloc(N * N * sizeof(float), 16);
     float* C = (float*) _aligned_malloc(N * N * sizeof(float), 16);
