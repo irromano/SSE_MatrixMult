@@ -1,4 +1,4 @@
-// SSE_MatrixMult.cpp : This file contains the 'main' function. Program execution begins and ends there.
+// SSE_MatrixMult.cpp : This program calculates a matrix multiplication using standard instructions and SSE instructions seperatly and then compares their timing results. It first makes this calculation normally through serial instructions and then again using SSE instructions. Both functions compute the matrix equation A * B = C and are timed separately.
 //
 
 #include <iostream>
@@ -6,7 +6,12 @@
 #include <chrono>
 
 #define N (1 << 10)
-
+/// <summary>
+/// Calculates an A * B = C matrix multiplication using standard instructions.
+/// </summary>
+/// <param name="A">The first input matrix</param>
+/// <param name="B">The second input matrix</param>
+/// <param name="C">The output matrix</param>
 void matrixMult(float* A, float* B, float* C)
 {
     int row, col, iter;
@@ -24,7 +29,12 @@ void matrixMult(float* A, float* B, float* C)
         }
     }
 }
-
+/// <summary>
+/// Calculates an A * B = C matrix multiplication using SSE operations.
+/// </summary>
+/// <param name="A">The first input matrix</param>
+/// <param name="B">The second input matrix</param>
+/// <param name="C">The output matrix</param>
 void matrixMultSSE(float* A, float* B, float* C)
 {
     __m128 regA;
@@ -71,20 +81,31 @@ void matrixInit(float* A, bool randVal)
         A[i] = val;
     }
 }
-
+/// <summary>
+/// Verifies if the floats of both matrixes all equal
+/// </summary>
+/// <param name="A"></param>
+/// <param name="B"></param>
+/// <returns>The amount of unequal indexes</returns>
 int matrixUnequalCount(float* A, float* B)
 {
     int miss = 0;
     for (int i = 0; i < N * N; i++)
     {
-        if (A[i] != B[i])
+        float tempA = A[i];
+        float tempB = B[i];
+        if (fabs(tempA - tempB) > 0.1f)
         {
+            //std::cout << tempA << " does not equal " << tempB << std::endl;
             miss++;
         }
     }
     return miss;
 }
-
+/// <summary>
+/// Prints all indexes of the given matrix.
+/// </summary>
+/// <param name="A"></param>
 void printMatrix(float* A)
 {
     std::cout << "Printing Matrix";
@@ -131,16 +152,16 @@ int main()
     time = end_time - start_time;
     std::cout << "SSE Calculation took " << time / std::chrono::microseconds(1) << " microseconds" << "\r\n" << std::endl;
 
-    std::cout << "Comparing C matrixes" << std::endl;
-    int miss = matrixUnequalCount(C, C_SSE);
-    if (miss)
-    {
-        std::cout << "Test Fail: Matrixes Unequal with " << miss << " misses" << std::endl;
-    }
-    else
-    {
-        std::cout << "Test Pass: Matrixes equal" << std::endl;
-    }
+    //std::cout << "Comparing C matrixes" << std::endl;
+    //int miss = matrixUnequalCount(C, C_SSE);
+    //if (miss)
+    //{
+    //    std::cout << "Test Fail: Matrixes Unequal with " << miss << " misses" << std::endl;
+    //}
+    //else
+    //{
+    //    std::cout << "Test Pass: Matrixes equal" << std::endl;
+    //}
 
     //std::cout << "Original" << std::endl;
     //printMatrix(C);
@@ -151,26 +172,5 @@ int main()
     _aligned_free(C);
     _aligned_free(C_SSE);
 
-    //__m128 regA;
-    //__m128 regB;
-    //__m128 regC;
-
-    //regA = _mm_set_ss(5.0);
-    //regB = _mm_set_ss(6.0);
-    //regC = _mm_mul_ss(regA, regB);
-    //float* ansC = (float*) _aligned_malloc(sizeof(float), 16);
-    //_mm_store_ss(ansC, regC);
-
     return 0;
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
